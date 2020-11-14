@@ -11,28 +11,25 @@
 #include <QDebug>
 #include <QGraphicsSceneMouseEvent>
 #include <QObject>
+#include "ITimeLineTrackViev.h"
 
 class CTimeLineIndicator: public QGraphicsItem
 {
 public:
     CTimeLineIndicator(float height);
 
-    QSizeF calculateSize() const;
-    void setHeight(float height){line.setP2(QPoint(0,height));}
 
-    QVector<QPointF> points;
-    QBrush brush;
-    QPen pen;
-
-    QLine line;//indicator line
-    QPolygonF poly;//indicator head polygon
-    bool pressed=false;
     // QGraphicsItem interface
 public:
     virtual QRectF boundingRect() const override;
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 
+
+
     // QGraphicsItem interface
+    ITimeLineTrackView *TimeLinePtr() const;
+    void setTimeLinePtr(ITimeLineTrackView *TimeLinePtr);
+
 protected:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
     virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
@@ -47,4 +44,18 @@ protected:
     // QGraphicsItem interface
 protected:
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
+
+private:
+    QSizeF calculateSize() const;
+    void setHeight(float height){line.setP2(QPoint(0,height));}
+
+    QVector<QPointF> points;
+    QBrush brush;
+    QPen pen;
+
+    QLine line;//indicator line
+    QPolygonF poly;//indicator head polygon
+    bool pressed=false;
+    ITimeLineTrackView* m_TimeLinePtr = nullptr;
+
 };

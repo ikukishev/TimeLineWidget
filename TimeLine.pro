@@ -12,6 +12,7 @@ SOURCES += \
     CTimeLineIndicator.cpp \
     CTimeLineTrack.cpp \
     CTimeLineView.cpp \
+   ITimeLineTrackViev.cpp \
         main.cpp \
         mainwindow.cpp
 
@@ -20,6 +21,7 @@ HEADERS += \
     CTimeLineIndicator.h \
     CTimeLineTrack.h \
     CTimeLineView.h \
+   ITimeLineTrackViev.h \
         mainwindow.h
 
 FORMS += \

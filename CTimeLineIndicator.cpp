@@ -1,24 +1,25 @@
 #include "CTimeLineIndicator.h"
+#include <QGraphicsScene>
+
+constexpr qreal cIndicatorSize = 7;
 
 CTimeLineIndicator::CTimeLineIndicator(float height):QGraphicsItem ()
 {
-    pen = QPen(Qt::black,2);
+    pen = QPen(Qt::darkMagenta,1);
     brush = QBrush(Qt::RoundCap);
     brush.setColor(QColor("#50f"));
-    points<<QPointF(-10,0)
-         <<QPointF(10,20)
-        <<QPointF(10,-10)
-       <<QPointF(-10,-10);
+    points<<QPointF(-cIndicatorSize,0)
+         <<QPointF(0,cIndicatorSize)
+        <<QPointF(cIndicatorSize,0)
+       <<QPointF(cIndicatorSize,-cIndicatorSize)
+      <<QPointF(-cIndicatorSize,-cIndicatorSize);
     setHeight(height);
    setAcceptHoverEvents(true);
    this->setAcceptDrops(true);
 
    setFlag(QGraphicsItem::ItemIsMovable);
-         setFlag(QGraphicsItem::ItemIsFocusable);
-setFlag(ItemSendsGeometryChanges);
-         //    setFlags(ItemIsMovable);
-
-    //line.setLine(0,0,0,);
+   setFlag(QGraphicsItem::ItemIsFocusable);
+   setFlag(ItemSendsGeometryChanges);
 }
 
 QSizeF CTimeLineIndicator::calculateSize()const
@@ -44,10 +45,20 @@ QSizeF CTimeLineIndicator::calculateSize()const
     return QSizeF(maxX-minX,line.p2().y());
 }
 
+ITimeLineTrackView *CTimeLineIndicator::TimeLinePtr() const
+{
+   return m_TimeLinePtr;
+}
+
+void CTimeLineIndicator::setTimeLinePtr(ITimeLineTrackView *TimeLinePtr)
+{
+   m_TimeLinePtr = TimeLinePtr;
+}
+
 QRectF CTimeLineIndicator::boundingRect() const
 {
-    QSizeF size = this->calculateSize();
-    return QRectF(-10,-10,size.width(),size.height());
+   QSizeF size = this->calculateSize();
+   return QRectF(-5,-5,size.width(),size.height());
 }
 
 void CTimeLineIndicator::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
@@ -58,6 +69,7 @@ void CTimeLineIndicator::paint(QPainter *painter, const QStyleOptionGraphicsItem
     painter->setBrush(brush);
     //painter->translate(-boundingRect().width()/2,0);
     painter->drawPolygon(points);
+    qDebug()<< __FUNCTION__;
     //painter->translate(boundingRect().width()/2,0);
 //    QBrush b(Qt::red);
 //    painter->setBrush(b);
@@ -66,14 +78,16 @@ void CTimeLineIndicator::paint(QPainter *painter, const QStyleOptionGraphicsItem
 
 void CTimeLineIndicator::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    if(event->type() == QEvent::MouseButtonPress){
+    if(event->type() == QEvent::MouseButtonPress)
+    {
         pressed = true;
         qDebug()<<"press";
-    }else if(event->type() == QEvent::MouseButtonRelease){
+    }
+    else if(event->type() == QEvent::MouseButtonRelease)
+    {
         pressed = false;
         qDebug()<<"release";
     }
-
 
     QGraphicsItem::mousePressEvent(event);
     update();
@@ -84,12 +98,10 @@ void CTimeLineIndicator::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     QPointF pos = event->scenePos();
     qDebug()<<"move";
     if(pressed){
-
-
         this->setPos(pos.x(),y());
     }
     QGraphicsItem::mouseMoveEvent(event);
-update();
+    update();
 }
 
 void CTimeLineIndicator::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
@@ -97,7 +109,7 @@ void CTimeLineIndicator::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     pressed = false;
     qDebug()<<event->scenePos();
     QGraphicsItem::mouseReleaseEvent(event);
-update();
+    update();
 }
 
 void CTimeLineIndicator::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
@@ -128,12 +140,22 @@ void CTimeLineIndicator::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 QVariant CTimeLineIndicator::itemChange(GraphicsItemChange change, const QVariant &value)
 {
 
-    if (change == ItemPositionChange && scene()) {
+    if ( change == ItemPositionChange && scene() )
+    {
         // value is the new position.
         QPointF newPos = value.toPointF();
         newPos.setY(y());
-        if(newPos.x() < 0){
+        if( newPos.x() < 0 || nullptr == m_TimeLinePtr )
+        {
             newPos.setX(0);
+        }
+        else
+        {
+           auto rightPosLimit = scene()->width() - m_TimeLinePtr->channelLabelWidth() - cFieldMargin;
+           if ( newPos.x() > rightPosLimit )
+           {
+              newPos.setX( rightPosLimit );
+           }
         }
 //        newPos = qBound(QPointF(0,0),newPos,QPointF(10000,0));
         return newPos;

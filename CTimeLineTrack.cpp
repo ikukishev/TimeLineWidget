@@ -1,27 +1,31 @@
 #include "CTimeLineTrack.h"
 #include <QDebug>
+#include <QCursor>
 #include <QGraphicsScene>
 
-CTimeLineTrack::CTimeLineTrack(int _length, QColor _color, QObject* parent)
+constexpr int64_t cDefaultDuration = 5000;
+constexpr int64_t cMinimumDuration = 200;
+
+CTimeLineTrack::CTimeLineTrack( ITimeLineChannel* channel, uint64_t position, QObject* parent )
     : QObject( parent )
-    , QGraphicsItem()
-    , color( _color )
-    , outlineColor( color.lighter(30) )
-    , penWidth( 2 )
-    , rounded( 0 )
-    , brush( color )
-    , pen( outlineColor, penWidth )
-    , length( _length )
-    , height( 30 )
     , oldPos( scenePos() )
 {
-    setFlags(ItemIsMovable);
-    pen.setCapStyle(Qt::RoundCap);
+    setEffectStartPosition( position );
+    setEffectDuration( cDefaultDuration );
+    setParentItem(channel);
+    setEffectNameLabel( "base" );
+    updatePosition();
 }
 
 QRectF CTimeLineTrack::boundingRect() const
 {
-    return QRectF(0,0,length,height);
+
+   ITimeLineChannel* channel = dynamic_cast<ITimeLineChannel*>( parentItem() );
+
+   assert( nullptr != channel );
+
+   QRectF rect ( 0, 0, channel->timeLinePtr()->convertPositionToSceneX( effectDuration() ), channel->timeLinePtr()->channelHeight() );
+   return rect;
 }
 
 void CTimeLineTrack::paint(QPainter *painter,
@@ -29,16 +33,28 @@ void CTimeLineTrack::paint(QPainter *painter,
                            QWidget *widget)
 {
     Q_UNUSED(widget);
-    painter->setBrush(brush);
-    painter->setPen(pen);
-    painter->drawRoundedRect(boundingRect(),rounded,rounded);
-    painter->setBrush(outlineColor);
-    QFont font = scene()->font();
-    QFontMetricsF fontMetrics(font);
-    QString text("tReplaySong1");
-    int heightFont = fontMetrics.boundingRect(text).height();
-    painter->drawText(0,heightFont,text);
 
+    ITimeLineChannel* channel = dynamic_cast<ITimeLineChannel*>( parentItem() );
+    if ( nullptr != channel )
+    {
+       updatePosition();
+
+       painter->setBrush( channel->color() );
+       QPen pen;
+       pen.setWidth(1);
+       if ( pressedForChangeDuration || pressedForMove )
+       {
+         pen.setColor( ~channel->color().rgb() );
+       }
+       painter->setPen(pen);
+
+       painter->drawRect(boundingRect());
+       QFont font = scene()->font();
+       QFontMetricsF fontMetrics(font);
+       int heightFont = fontMetrics.boundingRect( effectNameLabel() ).height();
+       painter->drawText(0,heightFont,effectNameLabel());
+
+    }
 }
 
 
@@ -48,8 +64,9 @@ QVariant CTimeLineTrack::itemChange(GraphicsItemChange change, const QVariant &v
     {
         // value is the new position.
         QPointF newPos = value.toPointF();
-        newPos.setY(y());
-        if(newPos.x() < 0){
+        //newPos.setY(y());
+        if(newPos.x() < 0)
+        {
             newPos.setX(0);
         }
 
@@ -58,51 +75,125 @@ QVariant CTimeLineTrack::itemChange(GraphicsItemChange change, const QVariant &v
     return QGraphicsItem::itemChange(change, value);
 }
 
+void CTimeLineTrack::updatePosition()
+{
+      ITimeLineChannel* channel = dynamic_cast<ITimeLineChannel*>( parentItem() );
+      assert( nullptr != channel );
+      setX( channel->timeLinePtr()->channelLabelWidth() + channel->timeLinePtr()->convertPositionToSceneX( effectStartPosition() ));
+}
+
 
 void CTimeLineTrack::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    qDebug()<<"Press";
-    pressed = true;
-    oldMousePos = event->scenePos();
-    oldPos = scenePos();
+   oldMousePos = event->pos();
+   oldPos = event->pos();
+
+   if ( 4>(boundingRect().width() - event->pos().x())  )
+   {
+      pressedForChangeDuration = true;
+      pressedForMove = false;
+
+      auto cur = this->cursor();
+      cur.setShape( Qt::SizeHorCursor );
+      this->setCursor(cur);
+   }
+   else
+   {
+      pressedForMove = true;
+      pressedForChangeDuration = false;
+
+      auto cur = this->cursor();
+      cur.setShape( Qt::DragMoveCursor );
+      this->setCursor(cur);
+   }
+
 }
 
 void CTimeLineTrack::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    qDebug()<<"Move";
-
-    if ( pressed )
+   QPointF newPos = event->pos();
+    if ( pressedForMove )
     {
-        QPointF newPos = event->scenePos();
-        qDebug()<<newPos;
+        ITimeLineChannel* channel = dynamic_cast<ITimeLineChannel*>( parentItem() );
+        assert( nullptr != channel );
+
         int yDiff = newPos.y() - oldPos.y();
-        qDebug()<<abs(yDiff);
-        int heightDiff=15;
+
+        int heightDiff= channel->timeLinePtr()->channelHeight() / 2;
+
         if (abs(yDiff) > heightDiff )
         {
-            heightDiff*=2;
-            heightDiff+=5;
-            int d = (int)(yDiff%heightDiff);
-            newPos.setY(oldPos.y()+(int)(yDiff/heightDiff)*heightDiff);
-            setY(newPos.y());
-        }
-        else
-        {
-            setY(oldPos.y());
+           int offset = yDiff / heightDiff;
+           auto newParent = channel->timeLinePtr()->getNeiborChannel( channel, offset );
+           if ( nullptr != newParent )
+           {
+              parentItem()->update( parentItem()->boundingRect());
+              setParentItem(newParent);
+           }
         }
 
-        int dx = (newPos - oldMousePos).x();
-        setX(oldPos.x()+dx);
+        int dx = newPos.x() - oldMousePos.x();
+        auto realTrekPos = pos().x() - channel->timeLinePtr()->channelLabelWidth() + dx;
+        if ( realTrekPos > 0 )
+        {
+           auto newPosition = channel->timeLinePtr()->convertSceneXToPosition( realTrekPos  );
+           if ( newPosition + effectDuration() < channel->timeLinePtr()->compositionDuration() && newPosition > 0 )
+           {
+              setEffectStartPosition(  newPosition );
+           }
+        }
+
+        updatePosition();
+        parentItem()->update( parentItem()->boundingRect());
+    }
+    else if ( pressedForChangeDuration )
+    {
+
+       ITimeLineChannel* channel = dynamic_cast<ITimeLineChannel*>( parentItem() );
+       assert( nullptr != channel );
+
+       int dx = newPos.x() - oldMousePos.x();
+
+       auto posDx = channel->timeLinePtr()->convertSceneXToPosition( dx );
+
+       auto newDuration = effectDuration()+posDx;
+       if ( newDuration > cMinimumDuration
+            && ( channel->timeLinePtr()->compositionDuration() >  effectStartPosition() + newDuration ) )
+       {
+          setEffectDuration( newDuration );
+       }
+       oldMousePos = newPos;
+       parentItem()->update( parentItem()->boundingRect());
     }
 }
+
 void CTimeLineTrack::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    qDebug()<<"Release";
-    pressed = false;
-    oldMousePos = event->scenePos();
-    oldPos = scenePos();
+    pressedForMove = false;
+    pressedForChangeDuration = false;
+    oldMousePos = event->pos();
+    oldPos = event->pos();
+
+    auto cur = this->cursor();
+    cur.setShape( Qt::ArrowCursor );
+    this->setCursor(cur);
 }
+
 void CTimeLineTrack::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
     qDebug()<<"Double Click";
+}
+
+
+CTimeLineTrack::TrackFactory CTimeLineTrack::TrackFactory::factory;
+
+const QString &CTimeLineTrack::TrackFactory::menuLabel() const
+{
+   static QString label("test");
+   return label;
+}
+
+ITrack *CTimeLineTrack::TrackFactory::create(ITimeLineChannel *parent, u_int64_t position)
+{
+   return new CTimeLineTrack( parent, position );
 }

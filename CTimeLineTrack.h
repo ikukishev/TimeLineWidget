@@ -5,18 +5,30 @@
 #include <QPen>
 #include <QPainter>
 #include <QGraphicsSceneMouseEvent>
+#include "ITimeLineTrackViev.h"
 
 
 
 class CTimeLineTrack
         : public QObject
-        , public QGraphicsItem
+        , public ITrack
 {
     Q_OBJECT
 public:
-    CTimeLineTrack(int _length, QColor _color, QObject* parent = nullptr );
+    CTimeLineTrack( ITimeLineChannel *channel,
+                    uint64_t position,
+                    QObject* parent = nullptr );
 
-    void SetLength(float _length) { length = _length; }
+    class TrackFactory: public ITrackFactory
+    {
+    public:
+       // ITrackFactory interface
+    public:
+       const QString &menuLabel() const;
+       ITrack *create(ITimeLineChannel *parent, u_int64_t position);
+
+       static TrackFactory factory;
+    };
 
     // QGraphicsItem interface
 public:
@@ -27,6 +39,7 @@ public:
 protected:
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
 
+    void updatePosition();
     // QGraphicsItem interface
 protected:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
@@ -35,14 +48,8 @@ protected:
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) override;
 
 private:
-    QColor color;
-    QColor outlineColor;
-    int penWidth;
-    int rounded;
-    QBrush brush;
-    QPen pen;
-    int length,height;
-    bool pressed=false;
+    bool pressedForMove=false;
+    bool pressedForChangeDuration=false;
     QPointF oldPos;
     QPointF oldMousePos;
 
