@@ -2,7 +2,7 @@
 
 #include <QGraphicsView>
 #include <QGraphicsItem>
-#include "ITimeLineTrackViev.h"
+#include "ITimeLineTrackView.h"
 #include "CTimeLineChannel.h"
 
 class CTimeLineIndicator;
@@ -54,6 +54,7 @@ public:
     virtual ITimeLineChannel *getNeiborChannel( ITimeLineChannel* channel, int offsetIndex ) const override;
 
     void addChannel( CTimeLineChannel* channel );
+    void removeChannel( CTimeLineChannel* channel );
     void clearChannels();
 
     void setChannelLabelWidth(const uint32_t &channelLabelWidth);

@@ -7,7 +7,7 @@
 
 #include "CTimeLineView.h"
 #include "CTimeLineIndicator.h"
-#include "CTimeLineTrack.h"
+#include "CTimeLineEffect.h"
 
 CTimeLineView::CTimeLineView( QWidget *parent )
     : QGraphicsView( new QGraphicsScene( ), parent )
@@ -34,21 +34,33 @@ void CTimeLineView::mousePressEvent(QMouseEvent *event)
       auto item = itemAt( event->pos() );
       if ( nullptr != item )
       {
-         auto channel = dynamic_cast< CTimeLineChannel* >(item);
-         if ( nullptr != channel )
+         if ( auto channel = dynamic_cast< CTimeLineChannel* >(item) )
          {
              qDebug() << event->pos() << item << "channel:" << channel->label();
              QMenu menu(this);
-             for ( auto f : ITrackFactory::trackFactories() )
+             for ( auto f : IEffectFactory::trackFactories() )
              {
                  QAction* newAct = new QAction( f->menuLabel(), this );
                  menu.addAction( newAct );
                  connect( newAct, &QAction::triggered, [ this, f, channel, pos = mapToScene(event->pos()) ]()
                  {
-                     auto effect = f->create( channel, convertSceneXToPosition( pos.x() ) );
+                    f->create( channel, convertSceneXToPosition( pos.x() ) );
                  });
              }
              menu.exec( QCursor::pos() );
+         }
+         else if ( auto track = dynamic_cast< IEffect* >(item) )
+         {
+            qDebug() << event->pos() << "track:" << track->effectNameLabel() << "position:" << track->effectStartPosition();
+            QMenu menu( this );
+            QAction* newAct = new QAction( "Remove \"" + track->effectNameLabel() + "\" from " + track->getChannel()->label(), this );
+            menu.addAction( newAct );
+            connect( newAct, &QAction::triggered, [ track ]()
+            {
+               track->setParentItem( nullptr );
+               delete track;
+            });
+            menu.exec( QCursor::pos() );
          }
       }
    }
@@ -147,7 +159,7 @@ void CTimeLineView::updateSceneRect()
 
    scene()->setSceneRect( -int( m_channelLabelWidth ), -int( m_timeLabelsHeight ), w - cFieldMargin, h - cFieldMargin);
 
-   for ( int i = 0; i < m_channels.size(); ++i )
+   for ( int i = 0; i < int(m_channels.size()); ++i )
    {
       m_channels[i]->setPos( -int(m_channelLabelWidth), i * m_channelHeight );
       m_channels[i]->updateChannelGraphics();
@@ -183,9 +195,13 @@ qreal CTimeLineView::convertPositionToSceneX() const
 
 qreal CTimeLineView::convertPositionToSceneX(int64_t position) const
 {
-   double fieldWidth = scene()->width() - m_channelLabelWidth - cFieldMargin;
-   double factor = double(position) / double(m_compositionDuration);
-   return factor * fieldWidth;
+   if ( nullptr != scene() )
+   {
+      double fieldWidth = scene()->width() - m_channelLabelWidth - cFieldMargin;
+      double factor = double(position) / double(m_compositionDuration);
+      return factor * fieldWidth;
+   }
+   return 0;
 }
 
 int64_t CTimeLineView::convertSceneXToPosition(qreal x) const
@@ -228,8 +244,33 @@ ITimeLineChannel *CTimeLineView::getNeiborChannel(ITimeLineChannel *channel, int
 
 void CTimeLineView::addChannel( CTimeLineChannel *channel )
 {
+   if ( nullptr == channel)
+   {
+      return;
+   }
+
    m_channels.push_back( channel );
+   channel->setTimeLinePtr( this );
    scene()->addItem( channel );
+}
+
+void CTimeLineView::removeChannel(CTimeLineChannel *channel)
+{
+   if ( nullptr == channel)
+   {
+      return;
+   }
+
+   auto it = std::find( m_channels.begin(), m_channels.end(), channel );
+   if ( m_channels.end() != it )
+   {
+      if (*it)
+      {
+         delete *it;
+         m_channels.erase( it);
+         updateSceneRect();
+      }
+   }
 }
 
 void CTimeLineView::clearChannels()

@@ -4,21 +4,20 @@
 #include <QObject>
 #include <QString>
 #include <QColor>
-#include "ITimeLineTrackViev.h"
+#include "ITimeLineTrackView.h"
 
 class CTimeLineChannel
-      : public QObject
-      , public ITimeLineChannel
+      : public ITimeLineChannel
 {
     Q_OBJECT
 public:
-    CTimeLineChannel( const QString& indentifer, const QString& label, QObject* parent = nullptr );
+    CTimeLineChannel( const QString& uuid, const QString& label, ITimeLineTrackView* timeline, QObject* parent = nullptr );
 
 
-    const QString& indentifer() const { return m_indentifer; }
-    void setIndentifer(const QString &indentifer) { m_indentifer = indentifer; }
+    const QString& uuid() const override { return m_uuid; }
+    void setUuid(const QString &uuid) { m_uuid = uuid; }
 
-    const QString& label() const { return m_label; }
+    const QString& label() const override { return m_label; }
     void setLabel(const QString &label) { m_label = label; }
 
     void setTimeLinePtr( ITimeLineTrackView* ptr ) { m_TimeLinePtr = ptr; }
@@ -32,9 +31,6 @@ public:
 
     // QGraphicsItem interface
 
-signals:
-    void effectsSetChanged( CTimeLineChannel* tlChannel );
-
 protected:
     virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
 
@@ -43,7 +39,7 @@ protected:
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 
 private:
-    QString m_indentifer;
+    QString m_uuid;
     QString m_label;
     QColor  m_labelColor;
 

@@ -61,7 +61,7 @@ QRectF CTimeLineIndicator::boundingRect() const
    return QRectF(-5,-5,size.width(),size.height());
 }
 
-void CTimeLineIndicator::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+void CTimeLineIndicator::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
 
     painter->setPen(pen);
@@ -69,7 +69,6 @@ void CTimeLineIndicator::paint(QPainter *painter, const QStyleOptionGraphicsItem
     painter->setBrush(brush);
     //painter->translate(-boundingRect().width()/2,0);
     painter->drawPolygon(points);
-    qDebug()<< __FUNCTION__;
     //painter->translate(boundingRect().width()/2,0);
 //    QBrush b(Qt::red);
 //    painter->setBrush(b);
@@ -81,12 +80,10 @@ void CTimeLineIndicator::mousePressEvent(QGraphicsSceneMouseEvent *event)
     if(event->type() == QEvent::MouseButtonPress)
     {
         pressed = true;
-        qDebug()<<"press";
     }
     else if(event->type() == QEvent::MouseButtonRelease)
     {
         pressed = false;
-        qDebug()<<"release";
     }
 
     QGraphicsItem::mousePressEvent(event);
@@ -96,7 +93,6 @@ void CTimeLineIndicator::mousePressEvent(QGraphicsSceneMouseEvent *event)
 void CTimeLineIndicator::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
     QPointF pos = event->scenePos();
-    qDebug()<<"move";
     if(pressed){
         this->setPos(pos.x(),y());
     }
@@ -117,6 +113,7 @@ void CTimeLineIndicator::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 //qDebug()<<"hover enter";
 
 
+   QGraphicsItem::hoverEnterEvent(event);
 }
 
 void CTimeLineIndicator::hoverMoveEvent(QGraphicsSceneHoverEvent *event)
@@ -129,12 +126,14 @@ void CTimeLineIndicator::hoverMoveEvent(QGraphicsSceneHoverEvent *event)
 //        qDebug()<<pos;
 //        this->setPos(pos.x(),y());
 //    }
+   QGraphicsItem::hoverMoveEvent(event);
 }
 
 void CTimeLineIndicator::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 {
 //qDebug()<<"hover leave";
     //    pressed=false;
+   QGraphicsItem::hoverLeaveEvent(event);
 }
 
 QVariant CTimeLineIndicator::itemChange(GraphicsItemChange change, const QVariant &value)

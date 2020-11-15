@@ -5,20 +5,21 @@
 #include <QLine>
 #include <QDebug>
 
-CTimeLineChannel::CTimeLineChannel(const QString &indentifer, const QString &label, QObject *parent )
-    : QObject( parent )
-    , m_indentifer( indentifer )
+CTimeLineChannel::CTimeLineChannel(const QString &uuid, const QString &label, ITimeLineTrackView *timeline, QObject *parent )
+    : ITimeLineChannel( parent )
+    , m_uuid( uuid )
     , m_label( label )
+    , m_TimeLinePtr( timeline )
 {
    setCacheMode( NoCache );
 }
 
 QRectF CTimeLineChannel::boundingRect() const
 {
-    return QRectF(0,0, scene()->width( ), m_TimeLinePtr? m_TimeLinePtr->channelHeight() : 20);
+    return QRectF(0,0, scene()->width( ), m_TimeLinePtr ? m_TimeLinePtr->channelHeight() : 20);
 }
 
-void CTimeLineChannel::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+void CTimeLineChannel::paint(QPainter *painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
    if ( m_TimeLinePtr )
    {
@@ -42,11 +43,6 @@ void CTimeLineChannel::paint(QPainter *painter, const QStyleOptionGraphicsItem *
       int heightFont = fontMetrics.boundingRect( m_label ).height();
       painter->drawText( 5, m_TimeLinePtr->channelHeight()/2 + heightFont/2, m_label );
 
-      for ( auto item : childItems())
-      {
-         item->update(item->boundingRect());
-      }
-
    }
 }
 
@@ -57,6 +53,7 @@ QColor CTimeLineChannel::color() const
 
 void CTimeLineChannel::updateChannelGraphics()
 {
+   updateEffectPositions();
    update(boundingRect());
 }
 
@@ -64,10 +61,33 @@ QVariant CTimeLineChannel::itemChange(QGraphicsItem::GraphicsItemChange change, 
 {
    switch ( change )
    {
-      case QGraphicsItem::ItemChildAddedChange:
-      case QGraphicsItem::ItemChildRemovedChange:
-         emit effectsSetChanged( this );
-         break;
+   case QGraphicsItem::ItemChildAddedChange:
+   {
+      auto val = value.value<QGraphicsItem*>();
+      if ( nullptr != val )
+      {
+         if ( auto effect = dynamic_cast< IEffect* >( val ) )
+         {
+            emit effectAdded( this, effect );
+         }
+      }
+      break;
+   }
+
+   case QGraphicsItem::ItemChildRemovedChange:
+   {
+      auto val = value.value<QGraphicsItem*>();
+      if ( nullptr != val )
+      {
+         if ( auto effect = dynamic_cast< IEffect* >( val ) )
+         {
+            emit effectRemoved( this, effect->getUuid() );
+         }
+      }
+      break;
+   }
+   default:
+      break;
    }
 
    return ITimeLineChannel::itemChange( change, value);

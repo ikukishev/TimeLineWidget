@@ -11,7 +11,7 @@
 #include <QDebug>
 #include <QGraphicsSceneMouseEvent>
 #include <QObject>
-#include "ITimeLineTrackViev.h"
+#include "ITimeLineTrackView.h"
 
 class CTimeLineIndicator: public QGraphicsItem
 {

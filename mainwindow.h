@@ -18,9 +18,13 @@ public:
 
     CTimeLineView *view;
 
+private slots:
+    void on_actionRemove_triggered();
+
 private:
 
     Ui::MainWindow *ui;
+
 
 };
 

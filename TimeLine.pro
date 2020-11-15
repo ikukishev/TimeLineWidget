@@ -9,19 +9,19 @@ CONFIG += c++17
 
 SOURCES += \
     CTimeLineChannel.cpp \
+   CTimeLineEffect.cpp \
     CTimeLineIndicator.cpp \
-    CTimeLineTrack.cpp \
     CTimeLineView.cpp \
-   ITimeLineTrackViev.cpp \
+   ITimeLineTrackView.cpp \
         main.cpp \
         mainwindow.cpp
 
 HEADERS += \
     CTimeLineChannel.h \
+   CTimeLineEffect.h \
     CTimeLineIndicator.h \
-    CTimeLineTrack.h \
     CTimeLineView.h \
-   ITimeLineTrackViev.h \
+   ITimeLineTrackView.h \
         mainwindow.h
 
 FORMS += \
