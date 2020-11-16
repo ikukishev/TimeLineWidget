@@ -11,6 +11,7 @@ SOURCES += \
     CTimeLineChannel.cpp \
    CTimeLineEffect.cpp \
     CTimeLineIndicator.cpp \
+   CTimeLinePosition.cpp \
     CTimeLineView.cpp \
    ITimeLineTrackView.cpp \
         main.cpp \
@@ -20,6 +21,7 @@ HEADERS += \
     CTimeLineChannel.h \
    CTimeLineEffect.h \
     CTimeLineIndicator.h \
+   CTimeLinePosition.h \
     CTimeLineView.h \
    ITimeLineTrackView.h \
         mainwindow.h

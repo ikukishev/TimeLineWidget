@@ -16,12 +16,21 @@ CTimeLineView::CTimeLineView( QWidget *parent )
 
     setMouseTracking( true );
 
-    indicator = new CTimeLineIndicator( 2000 );
+    indicator = new CTimeLineIndicator( );
     indicator->setTimeLinePtr( this );
 
-    indicator->setZValue( 101 );
+    indicator->setZValue( 102 );
 
     scene()->addItem( indicator );
+
+
+    indicatorPosition = new CTimeLinePosition();
+
+    indicatorPosition ->setTimeLinePtr( this );
+
+    indicatorPosition ->setZValue( 101 );
+
+    scene()->addItem( indicatorPosition );
 
     setBackgroundBrush( QBrush( Qt::black ) );
 
@@ -98,8 +107,7 @@ void CTimeLineView::keyPressEvent(QKeyEvent *event)
    }
    else if ( Qt::Key_Space == event->key() )
    {
-      auto ix = convertSceneXToPosition( indicator->pos().x() );
-      emit playFromPosition(this, ix);
+      emit playFromPosition(this, indicator->position() );
    }
 
    QGraphicsView::keyPressEvent(event);
@@ -165,6 +173,8 @@ void CTimeLineView::updateSceneRect()
       m_channels[i]->updateChannelGraphics();
    }
 
+   indicator->updateScenePosition();
+
 }
 
 uint32_t CTimeLineView::channelHeight() const
@@ -208,7 +218,7 @@ int64_t CTimeLineView::convertSceneXToPosition(qreal x) const
 {
    double fieldWidth = scene()->width() - m_channelLabelWidth - cFieldMargin;
    double factor = x / fieldWidth;
-   return int64_t(factor * m_compositionDuration);
+   return int64_t( factor * m_compositionDuration );
 }
 
 ITimeLineChannel *CTimeLineView::getNeiborChannel(ITimeLineChannel *channel, int offsetIndex) const
@@ -277,10 +287,13 @@ void CTimeLineView::clearChannels()
 {
    for ( auto ch : m_channels )
    {
-      scene()->removeItem( ch );
-      delete ch;
+      if ( ch )
+      {
+         delete ch;
+      }
    }
    m_channels.clear();
+   updateSceneRect();
 }
 
 void CTimeLineView::setChannelLabelWidth(const uint32_t &channelLabelWidth)
@@ -319,12 +332,23 @@ void CTimeLineView::setChannelHeight(uint32_t &&ch)
    m_channelHeight =  ch < 20 ? 20 : ch ;
 }
 
-void CTimeLineView::setCompositionDuration(uint64_t&& length)
+void CTimeLineView::setCompositionDuration( int64_t length )
 {
-   m_compositionDuration = length;
+   if ( length > 0 )
+   {
+      m_compositionDuration = length;
+      setCompositionPosition( 0 );
+      indicator->setPosition( 0 );
+      update();
+   }
 }
 
-void CTimeLineView::setCompositionPosition(uint64_t &&position)
+void CTimeLineView::setCompositionPosition( int64_t position )
 {
-   m_compositionPosition = position;
+   if ( position >=0 && position < m_compositionDuration )
+   {
+      m_compositionPosition = position;
+      indicatorPosition->setPosition( position );
+      update();
+   }
 }

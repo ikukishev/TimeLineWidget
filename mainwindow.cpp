@@ -108,6 +108,11 @@ MainWindow::MainWindow(QWidget *parent) :
     view->addChannel( channel );
 
 
+    connect( view, &CTimeLineView::playFromPosition, []( CTimeLineView* view, uint64_t position ){
+       view->setCompositionPosition( position );
+    });
+
+
 
     setCentralWidget(view);
 

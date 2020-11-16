@@ -4,6 +4,7 @@
 #include <QGraphicsItem>
 #include "ITimeLineTrackView.h"
 #include "CTimeLineChannel.h"
+#include "CTimeLinePosition.h"
 
 class CTimeLineIndicator;
 
@@ -69,11 +70,12 @@ public:
 
     void setChannelHeight(uint32_t &&ch);
 
-    void setCompositionDuration(uint64_t &&length );
-    void setCompositionPosition(uint64_t &&position );
+    void setCompositionDuration( int64_t length );
+    void setCompositionPosition( int64_t position );
 
 private:
     CTimeLineIndicator* indicator;
+    CTimeLinePosition*  indicatorPosition;
     uint32_t m_channelLabelWidth = 200;
     uint32_t m_channelHeight = 20;
     uint32_t m_timeLabelsHeight = 50;
